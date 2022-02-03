@@ -6,6 +6,7 @@ const asyncLocalStorage = require('../../services/als.service')
 
 const savedJsonData = require('../../data.json')
 
+const apiUrl = 'https://free.currconv.com/api/v7/convert?q=USD_PHP&compact=ultra&apiKey='
 const API_KEY1 = 'edcfa3216ba52990434c'
 const API_KEY2 = '7bac8c339872fb348d80'
 const API_KEY3 = 'cb938152f35b77903da4'
@@ -96,6 +97,17 @@ async function queryTemp(filterBy = {}) {
    }
 }
 
+//--------------*******Important notes*******----------------------
+//because my keys have been blocked, I cant make API calls,
+//so I'm using JSON file which was copied from the collection
+//in mongoDB atlas.
+//The API converter i used, knew to convert all the currencies,
+//but if I had to implement it on my own, I would've made an array of countries,
+//sorted by the countries which have the biggest number of destination countries with currency trade,
+//(for example USA, EUR...) and then, if I had a currency trade from a country to a
+//remote destination without a direct trade, I would have checked with the countries
+//on my new array, and if there was a match in trade(both in the source and destination)
+//I would do the conversion
 async function query(filterBy = {}) {
    try {
       const criteria = _buildCriteria(filterBy)
