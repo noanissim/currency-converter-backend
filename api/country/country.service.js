@@ -1,39 +1,15 @@
+const axios = require('axios')
+
 const dbService = require('../../services/db.service')
 const ObjectId = require('mongodb').ObjectId
 const asyncLocalStorage = require('../../services/als.service')
 
-const API_KEY = 'edcfa3216ba52990434c'
-let gDefaultCurrencies = [
-   {
-      _id: _makeId(),
-      name: 'Israel',
-      code: 'ISR',
-      coin: '₪',
-      currencies: []
-   },
-   {
-      _id: _makeId(),
-      name: 'Europe',
-      code: 'EUR',
-      coin: '€',
-      currencies: []
-   },
-   {
-      _id: _makeId(),
-      name: 'United Kingdom',
-      code: 'GBP',
-      coin: '£',
-      currencies: []
-   }
-]
+const savedJsonData = require('../../data.json')
 
-const emptyToCountry = {
-   _id: _makeId(),
-   name: '',
-   code: '',
-   coin: '',
-   value: null
-}
+const API_KEY1 = 'edcfa3216ba52990434c'
+const API_KEY2 = '7bac8c339872fb348d80'
+const API_KEY3 = 'cb938152f35b77903da4'
+const API_KEY4 = '3f8e5073b3cbf15cf9fc'
 
 let destinationCountries = [
    {
@@ -108,21 +84,13 @@ let destinationCountries = [
    }
 ]
 
-function _makeId(length = 10) {
-   var txt = ''
-   var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-   for (var i = 0; i < length; i++) {
-      txt += possible.charAt(Math.floor(Math.random() * possible.length))
-   }
-   return txt
-}
-
-async function getCurrency(filterBy = null) {
-   let url = `https://free.currconv.com/api/v7/convert?q=${filterBy.from}_${filterBy.to}&apiKey=${API_KEY}`
+//Temp because here I'm using temp JSON file and not the API
+async function queryTemp(filterBy = {}) {
    try {
-      const res = await axios.get(url)
-      console.log('res.data', res.data)
-      return res.data
+      const criteria = _buildCriteria(filterBy)
+      const collection = await dbService.getCollection('country')
+      const countries = await collection.find(criteria).toArray()
+      return countries
    } catch (err) {
       console.log(err)
    }
@@ -133,19 +101,35 @@ async function query(filterBy = {}) {
       const criteria = _buildCriteria(filterBy)
       const collection = await dbService.getCollection('country')
       const countries = await collection.find(criteria).toArray()
-      // gDefaultCurrencies.forEach(country => {
-      //    let from = country.code
-      //    destinationCountries.forEach(async destination => {
-      //       let myFilter = {
-      //          from,
-      //          to: destination.code
-      //       }
-      //       let res = await getCurrency(myFilter)
-      //       console.log('res :>>', res)
-      //    })
-      // })
-      // console.log('countries :>>', countries)
-      return countries
+      let updatedCountries = countries.map(async country => {
+         if (country.currencies.length) return country
+         try {
+            await Promise.all(
+               destinationCountries.map(async destination => {
+                  try {
+                     let myFilter = { from: '', to: '', value: null }
+
+                     myFilter.from = country.code
+                     myFilter.to = destination.code
+                     let url = `https://free.currconv.com/api/v7/convert?q=${myFilter.from}_${myFilter.to}&compact=ultra&&apiKey=${API_KEY4}`
+                     let ans = await axios.get(url)
+                     if (ans.data && ans.data[`${myFilter.from}_${myFilter.to}`]) {
+                        myFilter.value = ans.data[`${myFilter.from}_${myFilter.to}`]
+                        country.currencies.push(myFilter)
+                     }
+                     myFilter = null
+                  } catch (err) {
+                     console.log(err)
+                  }
+               })
+            )
+            let updatedCountry = await save(country)
+            return updatedCountry
+         } catch (err) {
+            console.log(err)
+         }
+      })
+      return updatedCountries
    } catch (err) {
       logger.error('cannot find countries', err)
       throw err
@@ -221,8 +205,18 @@ function _buildCriteria(filterBy) {
    return ctg
 }
 
+function _makeId(length = 10) {
+   var txt = ''
+   var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+   for (var i = 0; i < length; i++) {
+      txt += possible.charAt(Math.floor(Math.random() * possible.length))
+   }
+   return txt
+}
+
 module.exports = {
    query,
+   queryTemp,
    remove,
    getById,
    save

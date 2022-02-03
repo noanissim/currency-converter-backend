@@ -3,11 +3,8 @@ const countryService = require('./country.service')
 
 async function getCountries(req, res) {
    try {
-      console.log('====================================')
-      console.log('here')
-      console.log('====================================')
       const filterBy = req.query
-      const countries = await countryService.query(filterBy)
+      const countries = await countryService.queryTemp(filterBy)
       res.send(countries)
    } catch (err) {
       logger.error('Cannot get countries', err)
