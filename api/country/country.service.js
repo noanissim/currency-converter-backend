@@ -120,7 +120,6 @@ async function query(filterBy = {}) {
                destinationCountries.map(async destination => {
                   try {
                      let myFilter = { from: '', to: '', value: null }
-
                      myFilter.from = country.code
                      myFilter.to = destination.code
                      let url = `https://free.currconv.com/api/v7/convert?q=${myFilter.from}_${myFilter.to}&compact=ultra&&apiKey=${API_KEY4}`
